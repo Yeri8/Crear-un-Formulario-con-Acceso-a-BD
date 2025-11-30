@@ -1,0 +1,13 @@
+{
+  "name": "formulario_bd",
+  "version": "1.0.0",
+  "description": "CRUD con acceso a BD",
+  "main": "server.js",
+  "scripts": {
+    "start": "node ./backend/sqlite/server-sqlite.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "sqlite3": "^5.1.7"
+  }
+}

@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>CRUD — Formulario con Acceso a BD</title>
+
+  <!-- Favicon embebido (evita petición a /favicon.ico) -->
+  <link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIW2NgYGD4DwABBAEAjB2cGQAAAABJRU5ErkJggg==" />
+
+  <!-- Hoja de estilos externa -->
+  <link rel="stylesheet" href="styles.css">
+
+  <meta name="description" content="Formulario CRUD que accede a base de datos (SQLite / Mongo).">
+</head>
+<body>
+  <div class="wrap">
+    <header class="header">
+      <div class="brand flex">
+        <div class="logo" aria-hidden="true">DB</div>
+        <div>
+          <h1>Formulario con Acceso a BD</h1>
+          <div class="meta">Insertar · Modificar · Borrar · Consultar — Relacional o NoSQL</div>
+        </div>
+      </div>
+    <div class="small">Abre <a href="http://localhost:3002">http://localhost:3002</a> después de iniciar el backend</div>
+
+    </header>
+
+    <div class="layout">
+      <section class="card" aria-labelledby="form-title">
+        <h2 id="form-title" class="visually-hidden">Formulario de persona</h2>
+
+        <form id="form" class="form" autocomplete="on" novalidate>
+          <input type="hidden" id="id" name="id" autocomplete="off">
+
+          <div class="field">
+            <label for="name">Nombre *</label>
+            <input id="name" name="name" autocomplete="name" required placeholder="Ej: Juan Pérez" aria-required="true" />
+          </div>
+
+          <div class="field mt-10">
+            <label for="email">Email</label>
+            <input id="email" name="email" type="email" autocomplete="email" placeholder="correo@ejemplo.com" />
+          </div>
+
+          <div class="field mt-10">
+            <label for="age">Edad</label>
+            <input id="age" name="age" type="number" inputmode="numeric" autocomplete="off" min="0" placeholder="30" />
+          </div>
+
+          <div class="field mt-10">
+            <label for="notes">Notas</label>
+            <textarea id="notes" name="notes" autocomplete="off" placeholder="Observaciones..." aria-label="Notas"></textarea>
+          </div>
+
+          <div class="controls-row mt-12 flex-small-gap">
+            <button class="btn btn-primary" id="save" type="submit">Guardar</button>
+            <button class="btn btn-ghost" id="clear" type="button">Limpiar</button>
+            <div class="flex-1" aria-hidden="true"></div>
+            <div class="small">* campos obligatorios</div>
+          </div>
+        </form>
+      </section>
+
+      <section>
+        <div class="card card-top">
+          <div class="controls">
+            <input id="search" class="search" autocomplete="off" aria-label="Buscar por nombre" placeholder="Buscar por nombre...">
+            <button id="refresh" class="btn btn-ghost" type="button">Refrescar</button>
+            <button id="export" class="btn btn-ghost" type="button">Exportar CSV</button>
+          </div>
+          <div class="meta">Lista de registros en la base de datos</div>
+        </div>
+
+        <div class="card">
+          <table class="table">
+            <thead>
+              <tr>
+                <th class="w-8">ID</th>
+                <th class="w-28">Nombre</th>
+                <th class="w-22">Email</th>
+                <th class="w-22">Notas</th>
+                <th class="w-10">Edad</th>
+                <th class="w-10">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="tbody"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* ---------- SCRIPT (frontend) ---------- */
+const API = '/api/people';
+
+const form = document.getElementById('form');
+const idEl = document.getElementById('id');
+const nameEl = document.getElementById('name');
+const emailEl = document.getElementById('email');
+const ageEl = document.getElementById('age');
+const notesEl = document.getElementById('notes');
+const tbody = document.getElementById('tbody');
+const search = document.getElementById('search');
+const refresh = document.getElementById('refresh');
+const clearBtn = document.getElementById('clear');
+const exportBtn = document.getElementById('export');
+const saveBtn = document.getElementById('save');
+const toast = document.getElementById('toast');
+
+let dataCache = [];
+
+function showNotice(text, type='info', ttl=2500){
+  toast.textContent = text;
+  toast.className = type === 'error' ? 'error' : 'info';
+  toast.style.display = 'block';
+  setTimeout(()=>{ toast.style.display='none'; }, ttl);
+}
+
+function escapeHtml(s){ if(!s) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+async function loadAll(){
+  try{
+    const res = await fetch(API);
+    if(!res.ok) throw new Error('status '+res.status);
+    const data = await res.json();
+    dataCache = data;
+    render(data);
+  }catch(e){
+    console.error(e);
+    alert('Error al cargar datos. Asegura que el backend esté activo en http://localhost:3000');
+  }
+}
+
+function render(items){
+  tbody.innerHTML = '';
+  if(!items || items.length===0){
+    tbody.innerHTML = '<tr><td colspan="6" class="small">No hay registros</td></tr>';
+    return;
+  }
+  items.forEach(it=>{
+    const id = it.id || it._id || '';
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${String(id).slice(0,12)}</td>
+      <td>${escapeHtml(it.name||'')}</td>
+      <td>${escapeHtml(it.email||'')}</td>
+      <td>${escapeHtml(it.notes||'')}</td>
+      <td>${it.age ?? ''}</td>
+      <td>
+        <button class="actions edit" data-id="${id}" type="button">Editar</button>
+        <button class="actions del" data-id="${id}" type="button">Eliminar</button>
+      </td>`;
+    tbody.appendChild(tr);
+    tr.querySelector('.edit').addEventListener('click', ()=> onEdit(id));
+    tr.querySelector('.del').addEventListener('click', ()=> onDelete(id));
+  });
+}
+
+form.addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const payload = {
+    name: nameEl.value.trim(),
+    email: emailEl.value.trim() || null,
+    age: ageEl.value ? Number(ageEl.value) : null,
+    notes: notesEl.value.trim() || null
+  };
+  if(!payload.name){ alert('Nombre es obligatorio'); nameEl.focus(); return; }
+
+  const id = idEl.value;
+  try{
+    saveBtn.disabled = true;
+    saveBtn.textContent = id ? 'Guardando...' : 'Creando...';
+
+    let res;
+    if(id){
+      res = await fetch(API + '/' + id, {
+        method: 'PUT',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify(payload)
+      });
+      if(!res.ok) throw new Error('update failed: ' + res.status);
+      showNotice('Registro actualizado', 'info', 1800);
+    } else {
+      res = await fetch(API, {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify(payload)
+      });
+      if(!res.ok) throw new Error('create failed: ' + res.status);
+      showNotice('Registro creado', 'info', 1800);
+    }
+
+    resetForm();
+    await loadAll();
+  }catch(err){
+    console.error(err);
+    showNotice('Error guardando. Revisa el servidor.', 'error', 3500);
+    alert('Error al guardar: ' + (err.message || err));
+  }finally{
+    saveBtn.disabled = false;
+    saveBtn.textContent = 'Guardar';
+  }
+});
+
+function resetForm(){ idEl.value=''; form.reset(); nameEl.focus(); }
+
+clearBtn.addEventListener('click', (e)=>{ e.preventDefault(); resetForm(); });
+
+async function onEdit(id){
+  try{
+    const res = await fetch(API+'/'+id);
+    if(!res.ok) throw new Error('status '+res.status);
+    const d = await res.json();
+    idEl.value = d.id || d._id || '';
+    nameEl.value = d.name||'';
+    emailEl.value = d.email||'';
+    ageEl.value = d.age||'';
+    notesEl.value = d.notes||'';
+    window.scrollTo({top:0,behavior:'smooth'});
+  }catch(e){ console.error(e); alert('No se pudo cargar el registro'); }
+}
+
+async function onDelete(id){
+  if(!confirm('¿Eliminar este registro?')) return;
+  try{
+    const res = await fetch(API+'/'+id, { method:'DELETE' });
+    if(!res.ok) throw new Error('status '+res.status);
+    showNotice('Registro eliminado', 'info', 1400);
+    await loadAll();
+  }catch(e){ console.error(e); alert('Error eliminando'); }
+}
+
+search.addEventListener('input', (e)=>{
+  const q = e.target.value.toLowerCase().trim();
+  if(!q) return render(dataCache);
+  render(dataCache.filter(p=> (p.name||'').toLowerCase().includes(q)));
+});
+
+refresh.addEventListener('click', ()=>{ refresh.disabled = true; loadAll().finally(()=>refresh.disabled=false); });
+
+exportBtn.addEventListener('click', ()=>{
+  if(!dataCache || dataCache.length===0){ alert('No hay datos'); return; }
+  const header = ['id','name','email','age','notes'];
+  const rows = dataCache.map(p=>[p.id||p._id||'', p.name||'', p.email||'', p.age||'', (p.notes||'').replace(/\n/g,' ')]);
+  const csv = [header.join(','), ...rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n')].join('\n');
+  const blob = new Blob([csv], { type:'text/csv' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download='export.csv'; a.click();
+});
+
+window.addEventListener('load', loadAll);
+</script>
+</body>
+</html>
