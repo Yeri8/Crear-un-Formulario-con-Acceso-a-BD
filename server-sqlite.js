@@ -1,35 +1,18 @@
-// server-sqlite.js (reemplazar entero por este)
+// backend/sqlite/server-sqlite.js
 const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const fs = require('fs');
-
-// Optional: usa el paquete cors (recomendado)
-const cors = require('cors');
+const cors = require('cors'); // <-- add cors middleware
 
 const DB_FILE = path.join(__dirname, 'data.sqlite');
-
-// FRONTEND_DIR resolución flexible:
-//  - si se define FRONTEND_DIR en env (ej. Render), se usa
-//  - si no, se prueban rutas relativas comunes
-const FRONTEND_DIR = process.env.FRONTEND_DIR
-  || path.join(__dirname, '..', '..', 'frontend')   // estructura repo local
-  || path.join(__dirname, '..', 'frontend');
+const FRONTEND_DIR = path.join(__dirname, '..', '..', 'frontend');
 
 const app = express();
 
-// Habilitar CORS de forma abierta (para pruebas / GitHub Pages / Render).
-// En producción limitar origin a la(s) URL(s) permitida(s).
-app.use(cors());
-// Si prefieres no instalar cors, puedes usar el middleware manual siguiente:
-// app.use((req, res, next) => {
-//   res.setHeader('Access-Control-Allow-Origin', '*');
-//   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
-//   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-//   if (req.method === 'OPTIONS') return res.sendStatus(204);
-//   next();
-// });
-
+// Add CORS - allow GitHub Pages and other origins. 
+// By default allow any origin (safe for this exercise). If you want, restrict to your GH Pages domain.
+app.use(cors()); // <-- important: enables Access-Control-Allow-Origin: *
 app.use(express.json());
 
 // --- Inicializar DB SQLite ---
@@ -51,12 +34,10 @@ db.serialize(() => {
     age INTEGER,
     notes TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  )`, (err) => {
-    if (err) console.error('Error creando tabla people:', err);
-  });
+  )`);
 });
 
-// ---- RUTAS API ----
+// ---- RUTAS API (deben ir ANTES de servir el frontend) ----
 function rowToObj(row){
   if(!row) return null;
   return { id: row.id, name: row.name, email: row.email, age: row.age, notes: row.notes };
@@ -113,31 +94,16 @@ app.delete('/api/people/:id', (req, res) => {
   });
 });
 
-// --- SERVIR FRONTEND (si existe) ---
-function folderExists(p){ try { return fs.statSync(p).isDirectory(); } catch(e){ return false; } }
+// --- SERVIR FRONTEND (al final) ---
+app.use(express.static(FRONTEND_DIR));
 
-if (folderExists(FRONTEND_DIR)) {
-  console.log('Sirviendo frontend desde:', FRONTEND_DIR);
-  app.use(express.static(FRONTEND_DIR));
-  // En caso de rutas SPA
-  app.get('*', (req, res) => {
-    const indexPath = path.join(FRONTEND_DIR, 'index.html');
-    if (fs.existsSync(indexPath)) return res.sendFile(indexPath);
-    // si no hay index.html, devolvemos un JSON informativo
-    res.status(404).send('Index no encontrado en el frontend');
-  });
-} else {
-  console.warn(`Frontend no encontrado en ${FRONTEND_DIR}. Rutas API siguen activas.`);
-  // Rutas básicas para la raíz, evitan ENOENT en deploy
-  app.get('/', (req, res) => {
-    res.send(`<h2>API backend ejecutando</h2>
-      <p>No se encontró la carpeta frontend en: <code>${FRONTEND_DIR}</code></p>
-      <p>API: <a href="/api/people">/api/people</a></p>`);
-  });
-}
+app.get('*', (req, res) => {
+  res.sendFile(path.join(FRONTEND_DIR, 'index.html'));
+});
 
 // --- arrancar servidor ---
-const port = parseInt(process.env.PORT, 10) || 3000;
+const port = process.env.PORT || 3000;
 app.listen(port, () => {
   console.log('Server (SQLite) listening on', port);
 });
+
