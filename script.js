@@ -180,3 +180,4 @@ window.addEventListener('load', () => {
 
   loadAll();
 });
+
