@@ -3,255 +3,152 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>CRUD — Formulario con Acceso a BD</title>
+  <title>Formulario CRUD — Profesional</title>
 
-  <!-- Favicon embebido (evita petición a /favicon.ico) -->
-  <link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIW2NgYGD4DwABBAEAjB2cGQAAAABJRU5ErkJggg==" />
+  <!-- Tipografía -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
 
-  <!-- Hoja de estilos externa -->
-  <link rel="stylesheet" href="styles.css">
+  <style>
+    :root{
+      --bg:#f5f7fb;
+      --card:#ffffff;
+      --muted:#6b7280;
+      --primary:#2563eb;
+      --accent:#06b6d4;
+      --radius:12px;
+      font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);padding:28px;-webkit-font-smoothing:antialiased}
+    .wrap{max-width:1100px;margin:0 auto}
+    header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+    .brand{display:flex;gap:12px;align-items:center}
+    .logo{width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,var(--primary),var(--accent));display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:20px}
+    h1{margin:0;font-size:20px}
+    .subtitle{color:var(--muted);font-size:13px;margin-top:6px}
 
-  <meta name="description" content="Formulario CRUD que accede a base de datos (SQLite / Mongo).">
+    .grid{display:grid;grid-template-columns:380px 1fr;gap:18px}
+    @media (max-width:980px){ .grid{grid-template-columns:1fr} }
+
+    .panel{background:var(--card);border-radius:var(--radius);padding:18px;box-shadow:0 8px 30px rgba(12,20,40,0.06)}
+    label.small{display:block;font-size:13px;color:var(--muted);margin-bottom:8px}
+    input[type="text"],input[type="email"],input[type="number"],textarea,select{width:100%;padding:10px;border-radius:10px;border:1px solid #e6eef7;background:#fcfeff;font-size:14px}
+    textarea{min-height:90px;resize:vertical}
+
+    .btn{padding:10px 14px;border-radius:10px;border:none;font-weight:700;cursor:pointer}
+    .btn-primary{background:linear-gradient(180deg,var(--primary),#1e4fdc);color:white;box-shadow:0 8px 24px rgba(37,99,235,0.14)}
+    .btn-ghost{background:transparent;border:1px solid #e6eef7;color:var(--muted)}
+    .controls{display:flex;gap:8px;align-items:center;margin-bottom:10px}
+    .search{flex:1;padding:10px;border-radius:10px;border:1px solid #e6eef7}
+    .small{font-size:13px;color:var(--muted)}
+
+    table{width:100%;border-collapse:collapse;margin-top:8px}
+    th,td{padding:10px;border-bottom:1px solid #f1f5f9;text-align:left}
+    th{font-size:13px;color:var(--muted);font-weight:600}
+    .actions button{margin-right:6px;padding:6px 8px;border-radius:8px;border:none;cursor:pointer}
+    .edit{background:#0ea5e9;color:white}
+    .del{background:#ef4444;color:white}
+    .meta{font-size:12px;color:var(--muted);margin-top:8px}
+    .note{font-size:13px;color:var(--muted);margin-top:6px}
+  </style>
 </head>
 <body>
   <div class="wrap">
-    <header class="header">
-      <div class="brand flex">
-        <div class="logo" aria-hidden="true">DB</div>
+    <header>
+      <div class="brand">
+        <div class="logo">DB</div>
         <div>
           <h1>Formulario con Acceso a BD</h1>
-          <div class="meta">Insertar · Modificar · Borrar · Consultar — Relacional o NoSQL</div>
+          <div class="subtitle">Insertar · Modificar · Borrar · Consultar — Relacional o NoSQL</div>
         </div>
       </div>
-    <div class="small">Abre <a href="http://localhost:3002">http://localhost:3002</a> después de iniciar el backend</div>
 
+      <div class="small">Abre <a id="localLink" href="http://localhost:3000">http://localhost:3000</a> después de iniciar el backend</div>
     </header>
 
-    <div class="layout">
-      <section class="card" aria-labelledby="form-title">
-        <h2 id="form-title" class="visually-hidden">Formulario de persona</h2>
+    <div class="grid">
+      <!-- FORM -->
+      <section class="panel" aria-labelledby="form-title">
+        <h3 id="form-title" style="margin:0 0 12px 0">Formulario</h3>
 
-        <form id="form" class="form" autocomplete="on" novalidate>
-          <input type="hidden" id="id" name="id" autocomplete="off">
+        <form id="form" autocomplete="off" novalidate>
+          <input type="hidden" id="id" autocomplete="off">
 
-          <div class="field">
-            <label for="name">Nombre *</label>
-            <input id="name" name="name" autocomplete="name" required placeholder="Ej: Juan Pérez" aria-required="true" />
+          <div style="margin-bottom:10px">
+            <label class="small" for="name">Nombre *</label>
+            <input id="name" name="name" type="text" required autocomplete="name" placeholder="Ej: Juan Pérez">
           </div>
 
-          <div class="field mt-10">
-            <label for="email">Email</label>
-            <input id="email" name="email" type="email" autocomplete="email" placeholder="correo@ejemplo.com" />
+          <div style="margin-bottom:10px">
+            <label class="small" for="email">Email</label>
+            <input id="email" name="email" type="email" autocomplete="email" placeholder="correo@ejemplo.com">
           </div>
 
-          <div class="field mt-10">
-            <label for="age">Edad</label>
-            <input id="age" name="age" type="number" inputmode="numeric" autocomplete="off" min="0" placeholder="30" />
+          <div style="margin-bottom:10px">
+            <label class="small" for="age">Edad</label>
+            <input id="age" name="age" type="number" min="0" placeholder="30">
           </div>
 
-          <div class="field mt-10">
-            <label for="notes">Notas</label>
-            <textarea id="notes" name="notes" autocomplete="off" placeholder="Observaciones..." aria-label="Notas"></textarea>
+          <div style="margin-bottom:10px">
+            <label class="small" for="notes">Notas</label>
+            <textarea id="notes" name="notes" placeholder="Observaciones..."></textarea>
           </div>
 
-          <div class="controls-row mt-12 flex-small-gap">
+          <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
             <button class="btn btn-primary" id="save" type="submit">Guardar</button>
             <button class="btn btn-ghost" id="clear" type="button">Limpiar</button>
-            <div class="flex-1" aria-hidden="true"></div>
-            <div class="small">* campos obligatorios</div>
+            <button class="btn btn-ghost" id="loadExample" type="button">Cargar ejemplo</button>
+            <div style="flex:1"></div>
+            <div class="note">* Campos obligatorios</div>
           </div>
         </form>
+
+        <div class="meta" style="margin-top:12px">Este formulario envía la data al endpoint del backend y la lista se actualiza automáticamente.</div>
       </section>
 
+      <!-- TABLE -->
       <section>
-        <div class="card card-top">
+        <div class="panel" style="margin-bottom:12px">
           <div class="controls">
-            <input id="search" class="search" autocomplete="off" aria-label="Buscar por nombre" placeholder="Buscar por nombre...">
-            <button id="refresh" class="btn btn-ghost" type="button">Refrescar</button>
-            <button id="export" class="btn btn-ghost" type="button">Exportar CSV</button>
+            <input id="search" class="search" placeholder="Buscar por nombre..." aria-label="Buscar registros">
+            <button id="refresh" class="btn btn-ghost">Refrescar</button>
+            <button id="export" class="btn btn-ghost">Exportar CSV</button>
           </div>
-          <div class="meta">Lista de registros en la base de datos</div>
+          <div class="meta">Lista de registros en la base de datos (últimos 1000)</div>
         </div>
 
-        <div class="card">
-          <table class="table">
+        <div class="panel">
+          <table aria-live="polite">
             <thead>
               <tr>
-                <th class="w-8">ID</th>
-                <th class="w-28">Nombre</th>
-                <th class="w-22">Email</th>
-                <th class="w-22">Notas</th>
-                <th class="w-10">Edad</th>
-                <th class="w-10">Acciones</th>
+                <th style="width:8%">ID</th>
+                <th style="width:26%">Nombre</th>
+                <th style="width:18%">Email</th>
+                <th style="width:22%">Notas</th>
+                <th style="width:8%">Edad</th>
+                <th style="width:18%">Acciones</th>
               </tr>
             </thead>
-            <tbody id="tbody"></tbody>
+            <tbody id="tbody">
+              <!-- render rows here -->
+            </tbody>
           </table>
         </div>
       </section>
     </div>
   </div>
 
-  <div id="toast" role="status" aria-live="polite"></div>
+  <!-- API base: dejar vacío para local; poner URL pública cuando despliegues backend -->
+  <script>
+    // Si vas a desplegar el backend en Render u otro host:
+    // window.API_BASE = "https://mi-backend.onrender.com";
+    window.API_BASE = "";
+    // Ajusta el link local (solo informativo)
+    document.getElementById('localLink').href = window.API_BASE || 'http://localhost:3000';
+  </script>
 
-<script>
-/* ---------- SCRIPT (frontend) ---------- */
-const API = '/api/people';
-
-const form = document.getElementById('form');
-const idEl = document.getElementById('id');
-const nameEl = document.getElementById('name');
-const emailEl = document.getElementById('email');
-const ageEl = document.getElementById('age');
-const notesEl = document.getElementById('notes');
-const tbody = document.getElementById('tbody');
-const search = document.getElementById('search');
-const refresh = document.getElementById('refresh');
-const clearBtn = document.getElementById('clear');
-const exportBtn = document.getElementById('export');
-const saveBtn = document.getElementById('save');
-const toast = document.getElementById('toast');
-
-let dataCache = [];
-
-function showNotice(text, type='info', ttl=2500){
-  toast.textContent = text;
-  toast.className = type === 'error' ? 'error' : 'info';
-  toast.style.display = 'block';
-  setTimeout(()=>{ toast.style.display='none'; }, ttl);
-}
-
-function escapeHtml(s){ if(!s) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-
-async function loadAll(){
-  try{
-    const res = await fetch(API);
-    if(!res.ok) throw new Error('status '+res.status);
-    const data = await res.json();
-    dataCache = data;
-    render(data);
-  }catch(e){
-    console.error(e);
-    alert('Error al cargar datos. Asegura que el backend esté activo en http://localhost:3000');
-  }
-}
-
-function render(items){
-  tbody.innerHTML = '';
-  if(!items || items.length===0){
-    tbody.innerHTML = '<tr><td colspan="6" class="small">No hay registros</td></tr>';
-    return;
-  }
-  items.forEach(it=>{
-    const id = it.id || it._id || '';
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${String(id).slice(0,12)}</td>
-      <td>${escapeHtml(it.name||'')}</td>
-      <td>${escapeHtml(it.email||'')}</td>
-      <td>${escapeHtml(it.notes||'')}</td>
-      <td>${it.age ?? ''}</td>
-      <td>
-        <button class="actions edit" data-id="${id}" type="button">Editar</button>
-        <button class="actions del" data-id="${id}" type="button">Eliminar</button>
-      </td>`;
-    tbody.appendChild(tr);
-    tr.querySelector('.edit').addEventListener('click', ()=> onEdit(id));
-    tr.querySelector('.del').addEventListener('click', ()=> onDelete(id));
-  });
-}
-
-form.addEventListener('submit', async (e)=>{
-  e.preventDefault();
-  const payload = {
-    name: nameEl.value.trim(),
-    email: emailEl.value.trim() || null,
-    age: ageEl.value ? Number(ageEl.value) : null,
-    notes: notesEl.value.trim() || null
-  };
-  if(!payload.name){ alert('Nombre es obligatorio'); nameEl.focus(); return; }
-
-  const id = idEl.value;
-  try{
-    saveBtn.disabled = true;
-    saveBtn.textContent = id ? 'Guardando...' : 'Creando...';
-
-    let res;
-    if(id){
-      res = await fetch(API + '/' + id, {
-        method: 'PUT',
-        headers: {'Content-Type':'application/json'},
-        body: JSON.stringify(payload)
-      });
-      if(!res.ok) throw new Error('update failed: ' + res.status);
-      showNotice('Registro actualizado', 'info', 1800);
-    } else {
-      res = await fetch(API, {
-        method: 'POST',
-        headers: {'Content-Type':'application/json'},
-        body: JSON.stringify(payload)
-      });
-      if(!res.ok) throw new Error('create failed: ' + res.status);
-      showNotice('Registro creado', 'info', 1800);
-    }
-
-    resetForm();
-    await loadAll();
-  }catch(err){
-    console.error(err);
-    showNotice('Error guardando. Revisa el servidor.', 'error', 3500);
-    alert('Error al guardar: ' + (err.message || err));
-  }finally{
-    saveBtn.disabled = false;
-    saveBtn.textContent = 'Guardar';
-  }
-});
-
-function resetForm(){ idEl.value=''; form.reset(); nameEl.focus(); }
-
-clearBtn.addEventListener('click', (e)=>{ e.preventDefault(); resetForm(); });
-
-async function onEdit(id){
-  try{
-    const res = await fetch(API+'/'+id);
-    if(!res.ok) throw new Error('status '+res.status);
-    const d = await res.json();
-    idEl.value = d.id || d._id || '';
-    nameEl.value = d.name||'';
-    emailEl.value = d.email||'';
-    ageEl.value = d.age||'';
-    notesEl.value = d.notes||'';
-    window.scrollTo({top:0,behavior:'smooth'});
-  }catch(e){ console.error(e); alert('No se pudo cargar el registro'); }
-}
-
-async function onDelete(id){
-  if(!confirm('¿Eliminar este registro?')) return;
-  try{
-    const res = await fetch(API+'/'+id, { method:'DELETE' });
-    if(!res.ok) throw new Error('status '+res.status);
-    showNotice('Registro eliminado', 'info', 1400);
-    await loadAll();
-  }catch(e){ console.error(e); alert('Error eliminando'); }
-}
-
-search.addEventListener('input', (e)=>{
-  const q = e.target.value.toLowerCase().trim();
-  if(!q) return render(dataCache);
-  render(dataCache.filter(p=> (p.name||'').toLowerCase().includes(q)));
-});
-
-refresh.addEventListener('click', ()=>{ refresh.disabled = true; loadAll().finally(()=>refresh.disabled=false); });
-
-exportBtn.addEventListener('click', ()=>{
-  if(!dataCache || dataCache.length===0){ alert('No hay datos'); return; }
-  const header = ['id','name','email','age','notes'];
-  const rows = dataCache.map(p=>[p.id||p._id||'', p.name||'', p.email||'', p.age||'', (p.notes||'').replace(/\n/g,' ')]);
-  const csv = [header.join(','), ...rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n')].join('\n');
-  const blob = new Blob([csv], { type:'text/csv' });
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download='export.csv'; a.click();
-});
-
-window.addEventListener('load', loadAll);
-</script>
+  <!-- Script (frontend logic). Asegúrate de reemplazar o crear frontend/script.js si usas estructura diferente -->
+  <script src="script.js"></script>
 </body>
 </html>
+
