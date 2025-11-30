@@ -1,25 +1,19 @@
 // frontend/script.js
-// Frontend logic: detecta entorno y usa API pública si se necesita.
+// Forzar la URL pública de Render para el API (override seguro)
+const FORCE_API_BASE = 'https://crear-un-formulario-con-acceso-a-bd.onrender.com';
 
-// --- CONFIG ---
-// Si quieres forzar una URL concreta (override), ponla aquí:
-const FORCE_API_BASE = 'https://crear-un-formulario-con-acceso-a-bd.onrender.com'; // <- AJUSTA si tienes otra URL pública
-// const FORCE_API_BASE = null; // o usa esta para autodetección
-
+// Detección automática (si FORCE_API_BASE === null usará localhost o el host actual)
 function getApiBase() {
   if (FORCE_API_BASE) return FORCE_API_BASE.replace(/\/$/, '');
   const host = window.location.hostname || '';
-  if (host === 'localhost' || host === '127.0.0.1') return ''; // rutas relativas al backend local
-  // Si la app se sirve desde el mismo host que el backend, usa ruta relativa:
-  if (host.includes('render') || host.includes('onrender')) return '';
-  // Por defecto usar la URL pública (si tu backend está desplegado ahí)
-  return 'https://crear-un-formulario-con-acceso-a-bd.onrender.com';
+  if (host === 'localhost' || host === '127.0.0.1') return '';
+  return ''; // si se sirve desde mismo host, ruta relativa
 }
 
 const API_BASE = getApiBase();
 const API = API_BASE ? (API_BASE + '/api/people') : '/api/people';
-console.log('[INIT] API_BASE =', API_BASE || '(relativa)');
 
+// DOM
 const form = document.getElementById('form');
 const idEl = document.getElementById('id');
 const nameEl = document.getElementById('name');
@@ -35,13 +29,16 @@ const loadExampleBtn = document.getElementById('loadExample');
 
 let dataCache = [];
 
-function escapeHtml(s){ if(s===null || s===undefined) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+/* util */
+function escapeHtml(s){ if (s === null || s === undefined) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function notify(msg){ console.log('APP:', msg); }
 
+/* loadAll */
 async function loadAll(){
   try{
     const res = await fetch(API, { cache: 'no-store' });
     const ct = res.headers.get('content-type') || '';
-    if(!ct.includes('application/json')){
+    if (!ct.includes('application/json')) {
       const txt = await res.text().catch(()=>'');
       throw new Error('Respuesta inesperada del backend: no es JSON. (' + txt.slice(0,200) + ')');
     }
@@ -57,11 +54,11 @@ async function loadAll(){
 
 function render(items){
   tbody.innerHTML = '';
-  if(!items || items.length===0){
+  if(!items || items.length === 0){
     tbody.innerHTML = '<tr><td colspan="6" class="small">No hay registros</td></tr>';
     return;
   }
-  items.forEach(it=>{
+  items.forEach(it => {
     const id = it.id ?? it._id ?? '';
     const tr = document.createElement('tr');
     tr.innerHTML = `
@@ -81,7 +78,8 @@ function render(items){
   });
 }
 
-form.addEventListener('submit', async (e)=>{
+/* submit */
+form.addEventListener('submit', async (e) => {
   e.preventDefault();
   const payload = {
     name: nameEl.value.trim(),
@@ -89,23 +87,23 @@ form.addEventListener('submit', async (e)=>{
     age: ageEl.value ? Number(ageEl.value) : null,
     notes: notesEl.value.trim() || null
   };
-  if(!payload.name){ alert('Nombre es obligatorio'); nameEl.focus(); return; }
+  if (!payload.name) { alert('Nombre es obligatorio'); nameEl.focus(); return; }
   const id = idEl.value;
-  try{
-    if(id){
+  try {
+    if (id) {
       const res = await fetch(`${API}/${encodeURIComponent(id)}`, {
         method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload)
       });
-      if(!res.ok) throw new Error('update failed: ' + res.status);
+      if (!res.ok) throw new Error('update failed: ' + res.status);
     } else {
       const res = await fetch(API, {
         method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload)
       });
-      if(!res.ok) throw new Error('create failed: ' + res.status);
+      if (!res.ok) throw new Error('create failed: ' + res.status);
     }
     resetForm();
     await loadAll();
-  }catch(err){
+  } catch (err) {
     console.error(err);
     alert('Error guardando (ver consola).');
   }
@@ -113,10 +111,11 @@ form.addEventListener('submit', async (e)=>{
 
 function resetForm(){ idEl.value=''; form.reset(); nameEl.focus(); }
 
+/* edit / delete */
 async function onEdit(id){
-  try{
+  try {
     const res = await fetch(`${API}/${encodeURIComponent(id)}`);
-    if(!res.ok) throw new Error('Registro no encontrado: ' + res.status);
+    if (!res.ok) throw new Error('Registro no encontrado: ' + res.status);
     const d = await res.json();
     idEl.value = d.id ?? d._id ?? '';
     nameEl.value = d.name || '';
@@ -124,55 +123,53 @@ async function onEdit(id){
     ageEl.value = d.age ?? '';
     notesEl.value = d.notes || '';
     window.scrollTo({top:0,behavior:'smooth'});
-  }catch(e){
+  } catch (e) {
     console.error(e);
     alert('No se pudo cargar el registro');
   }
 }
 
 async function onDelete(id){
-  if(!confirm('¿Eliminar este registro?')) return;
-  try{
+  if (!confirm('¿Eliminar este registro?')) return;
+  try {
     const res = await fetch(`${API}/${encodeURIComponent(id)}`, { method: 'DELETE' });
-    if(!res.ok) throw new Error('Error eliminando: ' + res.status);
+    if (!res.ok) throw new Error('Error eliminando: ' + res.status);
     await loadAll();
-  }catch(e){
+  } catch (e) {
     console.error(e);
     alert('Error eliminando');
   }
 }
 
-search.addEventListener('input', (e)=>{
+/* UI helpers */
+search.addEventListener('input', (e) => {
   const q = e.target.value.toLowerCase().trim();
-  if(!q) return render(dataCache);
-  render(dataCache.filter(p=> (p.name||'').toLowerCase().includes(q)));
+  if (!q) return render(dataCache);
+  render(dataCache.filter(p => (p.name||'').toLowerCase().includes(q)));
 });
 
 refreshBtn.addEventListener('click', loadAll);
 clearBtn.addEventListener('click', (e)=>{ e.preventDefault(); resetForm(); });
-if (loadExampleBtn) loadExampleBtn.addEventListener('click', ()=>{
+if (loadExampleBtn) loadExampleBtn.addEventListener('click', ()=> {
   nameEl.value = 'Ejemplo Nombre';
   emailEl.value = 'ejemplo@correo.com';
   ageEl.value = 30;
   notesEl.value = 'Notas de ejemplo...';
 });
 
-exportBtn.addEventListener('click', ()=>{
-  if(!dataCache || dataCache.length===0){ alert('No hay datos'); return; }
+exportBtn.addEventListener('click', ()=> {
+  if (!dataCache || dataCache.length === 0) { alert('No hay datos'); return; }
   const header = ['id','name','email','age','notes'];
-  const rows = dataCache.map(p=>[p.id ?? p._id ?? '', p.name ?? '', p.email ?? '', p.age ?? '', (p.notes||'').replace(/\n/g,' ')]);
-  const csv = [header.join(','), ...rows.map(r => r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n')].join('\n');
+  const rows = dataCache.map(p => [p.id ?? p._id ?? '', p.name ?? '', p.email ?? '', p.age ?? '', (p.notes||'').replace(/\n/g,' ')]);
+  const csv = [header.join(','), ...rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n')].join('\n');
   const blob = new Blob([csv], { type:'text/csv' });
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download='export.csv'; a.click();
 });
 
-/* defensive: ensure button types */
+/* defensive: ensure buttons have types */
 window.addEventListener('load', () => {
-  document.querySelectorAll('button').forEach(btn => {
-    if(!btn.hasAttribute('type')) btn.setAttribute('type','button');
-  });
-  const save = document.getElementById('save');
-  if(save) save.setAttribute('type','submit');
+  document.querySelectorAll('button').forEach(btn => { if (!btn.hasAttribute('type')) btn.setAttribute('type','button'); });
+  const save = document.getElementById('save'); if (save) save.setAttribute('type','submit');
   loadAll();
 });
 
