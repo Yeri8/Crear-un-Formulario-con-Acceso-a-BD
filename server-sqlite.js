@@ -5,33 +5,18 @@ const path = require('path');
 const fs = require('fs');
 
 const DB_FILE = path.join(__dirname, 'data.sqlite');
-const FRONTEND_DIR = path.join(__dirname, '..', '..', 'frontend');
+const FRONTEND_DIR = path.join(__dirname, '..', '..', 'frontend'); // ajusta si tu frontend está en otra carpeta
 
 const app = express();
 app.use(express.json());
 
-// Si tu despliegue usa proxy (Render), permite que Express confíe en el proxy:
-app.set('trust proxy', true);
-
-// --- Middleware: Logging + CORS explícito para todas las rutas ---
+// --- CORS middleware (permite llamadas desde GitHub Pages / cualquier origen para pruebas)
+// En producción puedes restringir a tus dominios.
 app.use((req, res, next) => {
-  const origin = req.headers.origin || '<no-origin>';
-  console.log(`[REQ] ${new Date().toISOString()} ${req.method} ${req.originalUrl} Origin: ${origin}`);
-
-  // Ajusta esto a tu dominio en producción si quieres restringir:
-  // const allowedOrigin = 'https://yeri8.github.io';
-  const allowedOrigin = '*';
-
-  res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
-  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
-  // si necesitas cookies: set Access-Control-Allow-Credentials: true y usa origin exacto (no '*')
-  res.setHeader('Access-Control-Allow-Credentials', 'false');
-
-  // respuestas para preflight
-  if (req.method === 'OPTIONS') {
-    return res.status(204).end();
-  }
+  res.header('Access-Control-Allow-Origin', '*'); // para pruebas; en prod usa tu dominio
+  res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+  if (req.method === 'OPTIONS') return res.sendStatus(200);
   next();
 });
 
@@ -57,18 +42,22 @@ db.serialize(() => {
   )`);
 });
 
+// --- Helpers ---
 function rowToObj(row){
   if(!row) return null;
   return { id: row.id, name: row.name, email: row.email, age: row.age, notes: row.notes };
 }
 
-/* API CRUD */
+// --- API routes ---
 app.post('/api/people', (req, res) => {
   const { name, email, age, notes } = req.body || {};
   if (!name) return res.status(400).json({ error: 'name required' });
   const stmt = db.prepare('INSERT INTO people (name,email,age,notes) VALUES (?,?,?,?)');
   stmt.run(name, email || null, age || null, notes || null, function(err) {
-    if (err) { console.error('INSERT error', err); return res.status(500).json({ error: 'db error' }); }
+    if (err) {
+      console.error('INSERT error', err);
+      return res.status(500).json({ error: 'db error' });
+    }
     const id = this.lastID;
     db.get('SELECT id,name,email,age,notes FROM people WHERE id = ?', [id], (err, row) => {
       if (err) { console.error('SELECT after insert', err); return res.status(500).json({ error: 'db error' }); }
@@ -111,12 +100,17 @@ app.delete('/api/people/:id', (req, res) => {
   });
 });
 
-/* Servir frontend */
-app.use(express.static(FRONTEND_DIR));
-app.get('*', (req, res) => {
-  res.sendFile(path.join(FRONTEND_DIR, 'index.html'));
-});
+// --- Servir frontend (al final) ---
+if (fs.existsSync(FRONTEND_DIR)) {
+  app.use(express.static(FRONTEND_DIR));
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(FRONTEND_DIR, 'index.html'));
+  });
+} else {
+  console.warn('No se encontró FRONTEND_DIR:', FRONTEND_DIR, ' - asegúrate de que la carpeta frontend exista.');
+}
 
+// --- arrancar servidor ---
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
   console.log('Server (SQLite) listening on', port);
