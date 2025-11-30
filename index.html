@@ -1,56 +1,13 @@
+<!-- frontend/index.html -->
 <!doctype html>
 <html lang="es">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Formulario CRUD — Profesional</title>
-
-  <!-- Tipografía -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-
-  <style>
-    :root{
-      --bg:#f5f7fb;
-      --card:#ffffff;
-      --muted:#6b7280;
-      --primary:#2563eb;
-      --accent:#06b6d4;
-      --radius:12px;
-      font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
-    }
-    *{box-sizing:border-box}
-    body{margin:0;background:var(--bg);padding:28px;-webkit-font-smoothing:antialiased}
-    .wrap{max-width:1100px;margin:0 auto}
-    header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
-    .brand{display:flex;gap:12px;align-items:center}
-    .logo{width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,var(--primary),var(--accent));display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:20px}
-    h1{margin:0;font-size:20px}
-    .subtitle{color:var(--muted);font-size:13px;margin-top:6px}
-
-    .grid{display:grid;grid-template-columns:380px 1fr;gap:18px}
-    @media (max-width:980px){ .grid{grid-template-columns:1fr} }
-
-    .panel{background:var(--card);border-radius:var(--radius);padding:18px;box-shadow:0 8px 30px rgba(12,20,40,0.06)}
-    label.small{display:block;font-size:13px;color:var(--muted);margin-bottom:8px}
-    input[type="text"],input[type="email"],input[type="number"],textarea,select{width:100%;padding:10px;border-radius:10px;border:1px solid #e6eef7;background:#fcfeff;font-size:14px}
-    textarea{min-height:90px;resize:vertical}
-
-    .btn{padding:10px 14px;border-radius:10px;border:none;font-weight:700;cursor:pointer}
-    .btn-primary{background:linear-gradient(180deg,var(--primary),#1e4fdc);color:white;box-shadow:0 8px 24px rgba(37,99,235,0.14)}
-    .btn-ghost{background:transparent;border:1px solid #e6eef7;color:var(--muted)}
-    .controls{display:flex;gap:8px;align-items:center;margin-bottom:10px}
-    .search{flex:1;padding:10px;border-radius:10px;border:1px solid #e6eef7}
-    .small{font-size:13px;color:var(--muted)}
-
-    table{width:100%;border-collapse:collapse;margin-top:8px}
-    th,td{padding:10px;border-bottom:1px solid #f1f5f9;text-align:left}
-    th{font-size:13px;color:var(--muted);font-weight:600}
-    .actions button{margin-right:6px;padding:6px 8px;border-radius:8px;border:none;cursor:pointer}
-    .edit{background:#0ea5e9;color:white}
-    .del{background:#ef4444;color:white}
-    .meta{font-size:12px;color:var(--muted);margin-top:8px}
-    .note{font-size:13px;color:var(--muted);margin-top:6px}
-  </style>
+  <title>Formulario — Acceso a BD</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='18' fill='%232563eb'/%3E%3Ctext x='50' y='60' font-size='48' text-anchor='middle' fill='white' font-family='Arial'%3EC%3C/text%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="styles.css">
+  <meta name="description" content="CRUD simple con acceso a base de datos (SQLite) — insertar, modificar, borrar, consultar">
 </head>
 <body>
   <div class="wrap">
@@ -59,96 +16,72 @@
         <div class="logo">DB</div>
         <div>
           <h1>Formulario con Acceso a BD</h1>
-          <div class="subtitle">Insertar · Modificar · Borrar · Consultar — Relacional o NoSQL</div>
+          <p class="subtitle">Insertar · Modificar · Borrar · Consultar — Relacional o NoSQL</p>
         </div>
       </div>
-
-      <div class="small">Abre <a id="localLink" href="http://localhost:3000">http://localhost:3000</a> después de iniciar el backend</div>
+      <div class="hint small">Si usas GitHub Pages, el frontend llamará al backend público (Render).</div>
     </header>
 
-    <div class="grid">
-      <!-- FORM -->
-      <section class="panel" aria-labelledby="form-title">
-        <h3 id="form-title" style="margin:0 0 12px 0">Formulario</h3>
-
-        <form id="form" autocomplete="off" novalidate>
+    <main class="layout">
+      <aside class="card">
+        <form id="form" autocomplete="on">
           <input type="hidden" id="id" autocomplete="off">
-
-          <div style="margin-bottom:10px">
-            <label class="small" for="name">Nombre *</label>
-            <input id="name" name="name" type="text" required autocomplete="name" placeholder="Ej: Juan Pérez">
+          <div class="field">
+            <label for="name">Nombre *</label>
+            <input id="name" name="name" required placeholder="Ej: Juan Pérez" autocomplete="name">
+          </div>
+          <div class="field">
+            <label for="email">Email</label>
+            <input id="email" name="email" type="email" placeholder="correo@ejemplo.com" autocomplete="email">
+          </div>
+          <div class="field">
+            <label for="age">Edad</label>
+            <input id="age" name="age" type="number" min="0" placeholder="30" autocomplete="bday">
+          </div>
+          <div class="field">
+            <label for="notes">Notas</label>
+            <textarea id="notes" name="notes" placeholder="Observaciones..." autocomplete="off"></textarea>
           </div>
 
-          <div style="margin-bottom:10px">
-            <label class="small" for="email">Email</label>
-            <input id="email" name="email" type="email" autocomplete="email" placeholder="correo@ejemplo.com">
+          <div class="actions-row">
+            <button id="save" class="btn btn-primary" type="submit">Guardar</button>
+            <button id="clear" class="btn btn-ghost" type="button">Limpiar</button>
+            <button id="loadExample" class="btn btn-ghost" type="button">Cargar ejemplo</button>
           </div>
-
-          <div style="margin-bottom:10px">
-            <label class="small" for="age">Edad</label>
-            <input id="age" name="age" type="number" min="0" placeholder="30">
-          </div>
-
-          <div style="margin-bottom:10px">
-            <label class="small" for="notes">Notas</label>
-            <textarea id="notes" name="notes" placeholder="Observaciones..."></textarea>
-          </div>
-
-          <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
-            <button class="btn btn-primary" id="save" type="submit">Guardar</button>
-            <button class="btn btn-ghost" id="clear" type="button">Limpiar</button>
-            <button class="btn btn-ghost" id="loadExample" type="button">Cargar ejemplo</button>
-            <div style="flex:1"></div>
-            <div class="note">* Campos obligatorios</div>
-          </div>
+          <p class="small">* campos obligatorios</p>
         </form>
+      </aside>
 
-        <div class="meta" style="margin-top:12px">Este formulario envía la data al endpoint del backend y la lista se actualiza automáticamente.</div>
-      </section>
-
-      <!-- TABLE -->
       <section>
-        <div class="panel" style="margin-bottom:12px">
-          <div class="controls">
-            <input id="search" class="search" placeholder="Buscar por nombre..." aria-label="Buscar registros">
-            <button id="refresh" class="btn btn-ghost">Refrescar</button>
-            <button id="export" class="btn btn-ghost">Exportar CSV</button>
+        <div class="card controls">
+          <input id="search" class="search" placeholder="Buscar por nombre..." aria-label="Buscar por nombre">
+          <div class="controls-right">
+            <button id="refresh" class="btn btn-ghost" type="button">Refrescar</button>
+            <button id="export" class="btn btn-ghost" type="button">Exportar CSV</button>
           </div>
-          <div class="meta">Lista de registros en la base de datos (últimos 1000)</div>
         </div>
 
-        <div class="panel">
+        <div class="card table-card">
           <table aria-live="polite">
             <thead>
               <tr>
                 <th style="width:8%">ID</th>
-                <th style="width:26%">Nombre</th>
-                <th style="width:18%">Email</th>
+                <th style="width:28%">Nombre</th>
+                <th style="width:22%">Email</th>
                 <th style="width:22%">Notas</th>
-                <th style="width:8%">Edad</th>
-                <th style="width:18%">Acciones</th>
+                <th style="width:10%">Edad</th>
+                <th style="width:10%">Acciones</th>
               </tr>
             </thead>
-            <tbody id="tbody">
-              <!-- render rows here -->
-            </tbody>
+            <tbody id="tbody"></tbody>
           </table>
         </div>
       </section>
-    </div>
+    </main>
   </div>
 
-  <!-- API base: dejar vacío para local; poner URL pública cuando despliegues backend -->
-  <script>
-    // Si vas a desplegar el backend en Render u otro host:
-    // window.API_BASE = "https://mi-backend.onrender.com";
-    window.API_BASE = "";
-    // Ajusta el link local (solo informativo)
-    document.getElementById('localLink').href = window.API_BASE || 'http://localhost:3000';
-  </script>
-
-  <!-- Script (frontend logic). Asegúrate de reemplazar o crear frontend/script.js si usas estructura diferente -->
-  <script src="script.js"></script>
+  <!-- script debe estar aquí, al final de body -->
+  <script src="script.js" defer></script>
 </body>
 </html>
 
