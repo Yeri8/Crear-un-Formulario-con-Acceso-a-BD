@@ -3,17 +3,37 @@ const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const fs = require('fs');
-const cors = require('cors'); // <-- add cors middleware
 
 const DB_FILE = path.join(__dirname, 'data.sqlite');
 const FRONTEND_DIR = path.join(__dirname, '..', '..', 'frontend');
 
 const app = express();
-
-// Add CORS - allow GitHub Pages and other origins. 
-// By default allow any origin (safe for this exercise). If you want, restrict to your GH Pages domain.
-app.use(cors()); // <-- important: enables Access-Control-Allow-Origin: *
 app.use(express.json());
+
+// Si tu despliegue usa proxy (Render), permite que Express confíe en el proxy:
+app.set('trust proxy', true);
+
+// --- Middleware: Logging + CORS explícito para todas las rutas ---
+app.use((req, res, next) => {
+  const origin = req.headers.origin || '<no-origin>';
+  console.log(`[REQ] ${new Date().toISOString()} ${req.method} ${req.originalUrl} Origin: ${origin}`);
+
+  // Ajusta esto a tu dominio en producción si quieres restringir:
+  // const allowedOrigin = 'https://yeri8.github.io';
+  const allowedOrigin = '*';
+
+  res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
+  // si necesitas cookies: set Access-Control-Allow-Credentials: true y usa origin exacto (no '*')
+  res.setHeader('Access-Control-Allow-Credentials', 'false');
+
+  // respuestas para preflight
+  if (req.method === 'OPTIONS') {
+    return res.status(204).end();
+  }
+  next();
+});
 
 // --- Inicializar DB SQLite ---
 if (!fs.existsSync(DB_FILE)) {
@@ -37,21 +57,18 @@ db.serialize(() => {
   )`);
 });
 
-// ---- RUTAS API (deben ir ANTES de servir el frontend) ----
 function rowToObj(row){
   if(!row) return null;
   return { id: row.id, name: row.name, email: row.email, age: row.age, notes: row.notes };
 }
 
+/* API CRUD */
 app.post('/api/people', (req, res) => {
   const { name, email, age, notes } = req.body || {};
   if (!name) return res.status(400).json({ error: 'name required' });
   const stmt = db.prepare('INSERT INTO people (name,email,age,notes) VALUES (?,?,?,?)');
   stmt.run(name, email || null, age || null, notes || null, function(err) {
-    if (err) {
-      console.error('INSERT error', err);
-      return res.status(500).json({ error: 'db error' });
-    }
+    if (err) { console.error('INSERT error', err); return res.status(500).json({ error: 'db error' }); }
     const id = this.lastID;
     db.get('SELECT id,name,email,age,notes FROM people WHERE id = ?', [id], (err, row) => {
       if (err) { console.error('SELECT after insert', err); return res.status(500).json({ error: 'db error' }); }
@@ -94,14 +111,12 @@ app.delete('/api/people/:id', (req, res) => {
   });
 });
 
-// --- SERVIR FRONTEND (al final) ---
+/* Servir frontend */
 app.use(express.static(FRONTEND_DIR));
-
 app.get('*', (req, res) => {
   res.sendFile(path.join(FRONTEND_DIR, 'index.html'));
 });
 
-// --- arrancar servidor ---
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
   console.log('Server (SQLite) listening on', port);
